@@ -22,6 +22,9 @@ import org.iq80.leveldb.util.Slice;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * The log file contents are a sequence of 32KB blocks. The only exception is that the tail of the file may contain a partial block.
+ */
 public interface LogWriter
 {
     boolean isClosed();

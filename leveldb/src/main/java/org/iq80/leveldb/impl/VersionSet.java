@@ -102,7 +102,8 @@ public class VersionSet
             edit.setLogNumber(prevLogNumber);
             edit.setNextFileNumber(nextFileNumber.get());
             edit.setLastSequenceNumber(lastSequence);
-
+            
+            // The MANIFEST file is formatted as a log
             LogWriter log = Logs.createLogWriter(new File(databaseDir, Filename.descriptorFileName(manifestFileNumber)), manifestFileNumber);
             try {
                 writeSnapshot(log);

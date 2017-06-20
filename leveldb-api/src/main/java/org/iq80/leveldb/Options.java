@@ -21,11 +21,13 @@ public class Options
 {
     private boolean createIfMissing = true;
     private boolean errorIfExists;
+    // 4MB
     private int writeBufferSize = 4 << 20;
 
     private int maxOpenFiles = 1000;
 
     private int blockRestartInterval = 16;
+    // 4KB
     private int blockSize = 4 * 1024;
     private CompressionType compressionType = CompressionType.SNAPPY;
     private boolean verifyChecksums = true;

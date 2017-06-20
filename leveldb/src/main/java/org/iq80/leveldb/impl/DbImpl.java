@@ -95,6 +95,7 @@ public class DbImpl
 
     private final List<Long> pendingOutputs = newArrayList(); // todo
 
+    /** transaction log */
     private LogWriter log;
 
     private MemTable memTable;
@@ -1329,7 +1330,9 @@ public class DbImpl
     {
         Slice record = Slices.allocate(SIZE_OF_LONG + SIZE_OF_INT + updates.getApproximateSize());
         final SliceOutput sliceOutput = record.output();
+        // allocate via SIZE_OF_LONG
         sliceOutput.writeLong(sequenceBegin);
+        // allocate via SIZE_OF_INT
         sliceOutput.writeInt(updates.size());
         updates.forEach(new Handler()
         {

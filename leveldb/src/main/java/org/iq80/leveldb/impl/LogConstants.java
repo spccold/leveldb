@@ -24,13 +24,10 @@ import static org.iq80.leveldb.util.SizeOf.SIZE_OF_SHORT;
 public final class LogConstants
 {
     // todo find new home for these
-
+	// 32KB
     public static final int BLOCK_SIZE = 32768;
 
     // Header is checksum (4 bytes), type (1 byte), length (2 bytes).
+    // 7 bytes
     public static final int HEADER_SIZE = SIZE_OF_INT + SIZE_OF_BYTE + SIZE_OF_SHORT;
-
-    private LogConstants()
-    {
-    }
 }

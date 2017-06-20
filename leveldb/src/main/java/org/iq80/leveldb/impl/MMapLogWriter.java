@@ -40,6 +40,7 @@ import static org.iq80.leveldb.impl.Logs.getChunkChecksum;
 public class MMapLogWriter
         implements LogWriter
 {
+	// 1MB
     private static final int PAGE_SIZE = 1024 * 1024;
 
     private final File file;
@@ -234,6 +235,7 @@ public class MMapLogWriter
         Slice header = Slices.allocate(HEADER_SIZE);
         SliceOutput sliceOutput = header.output();
         sliceOutput.writeInt(crc);
+        // max block size is 32KB, so bytes of slice isn't possible to exceed 2 bytes
         sliceOutput.writeByte((byte) (slice.length() & 0xff));
         sliceOutput.writeByte((byte) (slice.length() >>> 8));
         sliceOutput.writeByte((byte) (type.getPersistentId()));

@@ -50,6 +50,7 @@ public class WriteBatchImpl
         Preconditions.checkNotNull(key, "key is null");
         Preconditions.checkNotNull(value, "value is null");
         batch.add(Maps.immutableEntry(Slices.wrappedBuffer(key), Slices.wrappedBuffer(value)));
+        // 12 = persistentId(int) + key.VariableLengthInt(int) + value.VariableLengthInt(int)
         approximateSize += 12 + key.length + value.length;
         return this;
     }
@@ -76,6 +77,7 @@ public class WriteBatchImpl
     {
         Preconditions.checkNotNull(key, "key is null");
         batch.add(Maps.immutableEntry(key, (Slice) null));
+        // 6 = persistentId(int)(byte in fact) + key.VariableLengthInt(int)
         approximateSize += 6 + key.length();
         return this;
     }
