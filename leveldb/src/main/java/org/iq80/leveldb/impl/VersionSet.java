@@ -59,6 +59,7 @@ public class VersionSet
 {
     private static final int L0_COMPACTION_TRIGGER = 4;
 
+    // 2MB
     public static final int TARGET_FILE_SIZE = 2 * 1048576;
 
     // Maximum bytes of overlaps in grandparent (i.e., level+2) before we

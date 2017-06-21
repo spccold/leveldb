@@ -55,10 +55,11 @@ public class MemTable
         Preconditions.checkNotNull(valueType, "valueType is null");
         Preconditions.checkNotNull(key, "key is null");
         Preconditions.checkNotNull(valueType, "valueType is null");
-
+        
         InternalKey internalKey = new InternalKey(key, sequenceNumber, valueType);
         table.put(internalKey, value);
-
+        
+        // SIZE_OF_LONG = the bytes length of sequenceNumber ?
         approximateMemoryUsage.addAndGet(key.length() + SIZE_OF_LONG + value.length());
     }
 
