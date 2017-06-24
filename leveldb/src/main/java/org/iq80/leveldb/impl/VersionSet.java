@@ -100,7 +100,9 @@ public class VersionSet
         if (!currentFile.exists()) {
             VersionEdit edit = new VersionEdit();
             edit.setComparatorName(internalKeyComparator.name());
+            // start from 0
             edit.setLogNumber(prevLogNumber);
+            // start from 2
             edit.setNextFileNumber(nextFileNumber.get());
             edit.setLastSequenceNumber(lastSequence);
             

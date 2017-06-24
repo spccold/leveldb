@@ -86,12 +86,11 @@ public class MMapTable
         }
     }
 
-    @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "AssignmentToStaticFieldFromInstanceMethod"})
     @Override
     protected Block readBlock(BlockHandle blockHandle)
             throws IOException
     {
-        // read block trailer
+        // read index block trailer
         BlockTrailer blockTrailer = BlockTrailer.readBlockTrailer(Slices.copiedBuffer(this.data,
                 (int) blockHandle.getOffset() + blockHandle.getDataSize(),
                 BlockTrailer.ENCODED_LENGTH));

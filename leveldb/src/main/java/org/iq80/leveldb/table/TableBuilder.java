@@ -194,7 +194,7 @@ public class TableBuilder
         BlockTrailer blockTrailer = new BlockTrailer(blockCompressionType, crc32c(blockContents, blockCompressionType));
         Slice trailer = BlockTrailer.writeBlockTrailer(blockTrailer);
 
-        // create a handle to this block
+        // create a handle to this block, position start from zero
         BlockHandle blockHandle = new BlockHandle(position, blockContents.length());
 
         // write data and trailer

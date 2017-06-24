@@ -28,6 +28,7 @@ public class BlockHandle
     public static final int MAX_ENCODED_LENGTH = 10 + 10;
 
     private final long offset;
+    // not contain BlockTrailer(compressType, crc32(blockContent, compressType)), just block data(k-v+restartPositions+restartPositions.size)
     private final int dataSize;
 
     BlockHandle(long offset, int dataSize)
