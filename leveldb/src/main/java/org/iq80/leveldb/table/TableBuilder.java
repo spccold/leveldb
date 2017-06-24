@@ -85,7 +85,9 @@ public class TableBuilder
         this.userComparator = userComparator;
 
         blockRestartInterval = options.blockRestartInterval();
+        // default: 4KB
         blockSize = options.blockSize();
+        // default: snappy
         compressionType = options.compressionType();
 
         dataBlockBuilder = new BlockBuilder((int) Math.min(blockSize * 1.1, TARGET_FILE_SIZE), blockRestartInterval, userComparator);
@@ -143,6 +145,7 @@ public class TableBuilder
         dataBlockBuilder.add(key, value);
 
         int estimatedBlockSize = dataBlockBuilder.currentSizeEstimate();
+        // blockSize, default: 4KB
         if (estimatedBlockSize >= blockSize) {
             flush();
         }

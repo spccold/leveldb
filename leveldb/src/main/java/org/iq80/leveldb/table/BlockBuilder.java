@@ -119,7 +119,7 @@ public class BlockBuilder
         }
 
         int nonSharedKeyBytes = key.length() - sharedKeyBytes;
-
+        // save key space ?
         // write "<shared><non_shared><value_size>"
         VariableLengthQuantity.writeVariableLengthInt(sharedKeyBytes, block);
         VariableLengthQuantity.writeVariableLengthInt(nonSharedKeyBytes, block);

@@ -53,8 +53,4 @@ public final class DbConstants
      * space if the same key space is being repeatedly overwritten.
      */
     public static final int MAX_MEM_COMPACT_LEVEL = 2;
-
-    private DbConstants()
-    {
-    }
 }
