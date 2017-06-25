@@ -50,6 +50,7 @@ public class Version implements SeekingIterable<InternalKey, Slice> {
 	// move these mutable fields somewhere else
 	private int compactionLevel;
 	private double compactionScore;
+	
 	private FileMetaData fileToCompact;
 	private int fileToCompactLevel;
 

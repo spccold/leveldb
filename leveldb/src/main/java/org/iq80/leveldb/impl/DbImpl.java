@@ -826,8 +826,7 @@ public class DbImpl implements DB {
 		try {
 			// Save the contents of the memtable as a new Table
 			VersionEdit edit = new VersionEdit();
-			Version base = versions.getCurrent();
-			writeLevel0Table(immutableMemTable, edit, base);
+			writeLevel0Table(immutableMemTable, edit, versions.getCurrent());
 
 			if (shuttingDown.get()) {
 				throw new DatabaseShutdownException("Database shutdown during memtable compaction");
@@ -835,8 +834,9 @@ public class DbImpl implements DB {
 
 			// Replace immutable memtable with the generated Table
 			edit.setPreviousLogNumber(0);
-			edit.setLogNumber(log.getFileNumber()); // Earlier logs no longer
-													// needed
+			// Earlier logs no longer needed
+			edit.setLogNumber(log.getFileNumber());
+			// apply <=> use, VersionSet log and use current VersionEdit
 			versions.logAndApply(edit);
 
 			immutableMemTable = null;
@@ -876,6 +876,7 @@ public class DbImpl implements DB {
 			if (base != null) {
 				level = base.pickLevelForMemTableOutput(minUserKey, maxUserKey);
 			}
+			// add meta to specified level
 			edit.addFile(level, meta);
 		}
 	}

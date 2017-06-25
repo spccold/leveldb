@@ -253,29 +253,29 @@ public class VersionSet
         this.lastSequence = newLastSequence;
     }
 
-    public void logAndApply(VersionEdit edit)
-            throws IOException
+	public void logAndApply(VersionEdit edit) throws IOException
     {
-        if (edit.getLogNumber() != null) {
-            Preconditions.checkArgument(edit.getLogNumber() >= logNumber);
-            Preconditions.checkArgument(edit.getLogNumber() < nextFileNumber.get());
-        }
-        else {
-            edit.setLogNumber(logNumber);
-        }
+		if (edit.getLogNumber() != null) {
+			Preconditions.checkArgument(edit.getLogNumber() >= logNumber);
+			Preconditions.checkArgument(edit.getLogNumber() < nextFileNumber.get());
+		} else {
+			edit.setLogNumber(logNumber);
+		}
 
-        if (edit.getPreviousLogNumber() == null) {
-            edit.setPreviousLogNumber(prevLogNumber);
-        }
+		if (edit.getPreviousLogNumber() == null) {
+			edit.setPreviousLogNumber(prevLogNumber);
+		}
 
         edit.setNextFileNumber(nextFileNumber.get());
         edit.setLastSequenceNumber(lastSequence);
 
-        Version version = new Version(this);
         Builder builder = new Builder(this, current);
         builder.apply(edit);
-        builder.saveTo(version);
 
+        Version version = new Version(this);
+        builder.saveTo(version);
+        
+        // finalize => finish new version setting
         finalizeVersion(version);
 
         boolean createdNewManifest = false;
@@ -291,6 +291,7 @@ public class VersionSet
 
             // Write new record to MANIFEST log
             Slice record = edit.encode();
+            // Delta Updates, relative to writeSnapshot()
             descriptorLog.addRecord(record, true);
 
             // If we just created a new descriptor file, install it by writing a
@@ -316,26 +317,25 @@ public class VersionSet
         prevLogNumber = edit.getPreviousLogNumber();
     }
 
-    private void writeSnapshot(LogWriter log)
-            throws IOException
-    {
-        // Save metadata
-        VersionEdit edit = new VersionEdit();
-        edit.setComparatorName(internalKeyComparator.name());
+	/**
+	 * snapshot for what? for leveldb(level0 ~ level6)?
+	 */
+	private void writeSnapshot(LogWriter log) throws IOException {
+		// Save metadata
+		VersionEdit edit = new VersionEdit();
+		edit.setComparatorName(internalKeyComparator.name());
 
-        // Save compaction pointers
-        edit.setCompactPointers(compactPointers);
+		// Save compaction pointers
+		edit.setCompactPointers(compactPointers);
 
-        // Save files
-        edit.addFiles(current.getFiles());
+		// Save files
+		edit.addFiles(current.getFiles());
 
-        Slice record = edit.encode();
-        log.addRecord(record, false);
-    }
+		Slice record = edit.encode();
+		log.addRecord(record, false);
+	}
 
-    public void recover()
-            throws IOException
-    {
+	public void recover() throws IOException {
         // Read "CURRENT" file, which contains a pointer to the current manifest file
         File currentFile = new File(databaseDir, Filename.currentFileName());
         Preconditions.checkState(currentFile.exists(), "CURRENT file does not exist");
@@ -411,46 +411,44 @@ public class VersionSet
         }
     }
 
-    private void finalizeVersion(Version version)
-    {
-        // Precomputed best level for next compaction
-        int bestLevel = -1;
-        double bestScore = -1;
+	private void finalizeVersion(Version version) {
+		// Precomputed best level for next compaction
+		int bestLevel = -1;
+		double bestScore = -1;
 
-        for (int level = 0; level < version.numberOfLevels() - 1; level++) {
-            double score;
-            if (level == 0) {
-                // We treat level-0 specially by bounding the number of files
-                // instead of number of bytes for two reasons:
-                //
-                // (1) With larger write-buffer sizes, it is nice not to do too
-                // many level-0 compactions.
-                //
-                // (2) The files in level-0 are merged on every read and
-                // therefore we wish to avoid too many files when the individual
-                // file size is small (perhaps because of a small write-buffer
-                // setting, or very high compression ratios, or lots of
-                // overwrites/deletions).
-                score = 1.0 * version.numberOfFilesInLevel(level) / L0_COMPACTION_TRIGGER;
-            }
-            else {
-                // Compute the ratio of current size to size limit.
-                long levelBytes = 0;
-                for (FileMetaData fileMetaData : version.getFiles(level)) {
-                    levelBytes += fileMetaData.getFileSize();
-                }
-                score = 1.0 * levelBytes / maxBytesForLevel(level);
-            }
+		for (int level = 0; level < version.numberOfLevels() - 1; level++) {
+			double score;
+			if (level == 0) {
+				// We treat level-0 specially by bounding the number of files
+				// instead of number of bytes for two reasons:
+				//
+				// (1) With larger write-buffer sizes, it is nice not to do too
+				// many level-0 compactions.
+				//
+				// (2) The files in level-0 are merged on every read and
+				// therefore we wish to avoid too many files when the individual
+				// file size is small (perhaps because of a small write-buffer
+				// setting, or very high compression ratios, or lots of
+				// overwrites/deletions).
+				score = 1.0 * version.numberOfFilesInLevel(level) / L0_COMPACTION_TRIGGER;
+			} else {
+				// Compute the ratio of current size to size limit.
+				long levelBytes = 0;
+				for (FileMetaData fileMetaData : version.getFiles(level)) {
+					levelBytes += fileMetaData.getFileSize();
+				}
+				score = 1.0 * levelBytes / maxBytesForLevel(level);
+			}
 
-            if (score > bestScore) {
-                bestLevel = level;
-                bestScore = score;
-            }
-        }
+			if (score > bestScore) {
+				bestLevel = level;
+				bestScore = score;
+			}
+		}
 
-        version.setCompactionLevel(bestLevel);
-        version.setCompactionScore(bestScore);
-    }
+		version.setCompactionLevel(bestLevel);
+		version.setCompactionScore(bestScore);
+	}
 
     private static <V> V coalesce(V... values)
     {
@@ -690,6 +688,7 @@ public class VersionSet
     {
         private final VersionSet versionSet;
         private final Version baseVersion;
+        
         private final List<LevelState> levels;
 
         private Builder(VersionSet versionSet, Version baseVersion)
@@ -755,105 +754,100 @@ public class VersionSet
         /**
          * Saves the current state in specified version.
          */
-        public void saveTo(Version version)
-                throws IOException
-        {
-            FileMetaDataBySmallestKey cmp = new FileMetaDataBySmallestKey(versionSet.internalKeyComparator);
-            for (int level = 0; level < baseVersion.numberOfLevels(); level++) {
-                // Merge the set of added files with the set of pre-existing files.
-                // Drop any deleted files.  Store the result in *v.
+		public void saveTo(Version version) throws IOException {
+			
+			FileMetaDataBySmallestKey cmp = new FileMetaDataBySmallestKey(versionSet.internalKeyComparator);
 
-                Collection<FileMetaData> baseFiles = baseVersion.getFiles().asMap().get(level);
-                if (baseFiles == null) {
-                    baseFiles = ImmutableList.of();
-                }
-                SortedSet<FileMetaData> addedFiles = levels.get(level).addedFiles;
-                if (addedFiles == null) {
-                    addedFiles = ImmutableSortedSet.of();
-                }
+			for (int level = 0; level < baseVersion.numberOfLevels(); level++) {
+				// Merge the set of added files with the set of pre-existing
+				// files.
+				// Drop any deleted files. Store the result in *v.
 
-                // files must be added in sorted order so assertion check in maybeAddFile works
-                ArrayList<FileMetaData> sortedFiles = newArrayListWithCapacity(baseFiles.size() + addedFiles.size());
-                sortedFiles.addAll(baseFiles);
-                sortedFiles.addAll(addedFiles);
-                Collections.sort(sortedFiles, cmp);
+				Collection<FileMetaData> baseFiles = baseVersion.getFiles().asMap().get(level);
+				if (baseFiles == null) {
+					baseFiles = ImmutableList.of();
+				}
+				SortedSet<FileMetaData> addedFiles = levels.get(level).addedFiles;
+				if (addedFiles == null) {
+					addedFiles = ImmutableSortedSet.of();
+				}
 
-                for (FileMetaData fileMetaData : sortedFiles) {
-                    maybeAddFile(version, level, fileMetaData);
-                }
+				// files must be added in sorted order so assertion check in
+				// maybeAddFile works
+				ArrayList<FileMetaData> sortedFiles = newArrayListWithCapacity(baseFiles.size() + addedFiles.size());
+				sortedFiles.addAll(baseFiles);
+				sortedFiles.addAll(addedFiles);
+				Collections.sort(sortedFiles, cmp);
 
-                //#ifndef NDEBUG  todo
-                // Make sure there is no overlap in levels > 0
-                version.assertNoOverlappingFiles();
-                //#endif
-            }
-        }
+				for (FileMetaData fileMetaData : sortedFiles) {
+					maybeAddFile(version, level, fileMetaData);
+				}
 
-        private void maybeAddFile(Version version, int level, FileMetaData fileMetaData)
-                throws IOException
-        {
-            if (levels.get(level).deletedFiles.contains(fileMetaData.getNumber())) {
-                // File is deleted: do nothing
-            }
-            else {
-                List<FileMetaData> files = version.getFiles(level);
-                if (level > 0 && !files.isEmpty()) {
-                    // Must not overlap
-                    boolean filesOverlap = versionSet.internalKeyComparator.compare(files.get(files.size() - 1).getLargest(), fileMetaData.getSmallest()) >= 0;
-                    if (filesOverlap) {
-                        // A memory compaction, while this compaction was running, resulted in a a database state that is
-                        // incompatible with the compaction.  This is rare and expensive to detect while the compaction is
-                        // running, so we catch here simply discard the work.
-                        throw new IOException(String.format("Compaction is obsolete: Overlapping files %s and %s in level %s",
-                                files.get(files.size() - 1).getNumber(),
-                                fileMetaData.getNumber(), level));
-                    }
-                }
-                version.addFile(level, fileMetaData);
-            }
-        }
+				// #ifndef NDEBUG todo
+				// Make sure there is no overlap in levels > 0
+				version.assertNoOverlappingFiles();
+				// #endif
+			}
+		}
 
-        private static class FileMetaDataBySmallestKey
-                implements Comparator<FileMetaData>
-        {
-            private final InternalKeyComparator internalKeyComparator;
+		private void maybeAddFile(Version version, int level, FileMetaData fileMetaData) throws IOException {
+			
+			if (levels.get(level).deletedFiles.contains(fileMetaData.getNumber())) {
+				// File is deleted: do nothing
+			} else {
+				List<FileMetaData> files = version.getFiles(level);
+				if (level > 0 && !files.isEmpty()) {
+					// Must not overlap
+					boolean filesOverlap = versionSet.internalKeyComparator
+							.compare(files.get(files.size() - 1).getLargest(), fileMetaData.getSmallest()) >= 0;
+					if (filesOverlap) {
+						// A memory compaction, while this compaction was
+						// running, resulted in a a database state that is
+						// incompatible with the compaction. This is rare and
+						// expensive to detect while the compaction is
+						// running, so we catch here simply discard the work.
+						throw new IOException(
+								String.format("Compaction is obsolete: Overlapping files %s and %s in level %s",
+										files.get(files.size() - 1).getNumber(), fileMetaData.getNumber(), level));
+					}
+				}
+				version.addFile(level, fileMetaData);
+			}
+		}
 
-            private FileMetaDataBySmallestKey(InternalKeyComparator internalKeyComparator)
-            {
-                this.internalKeyComparator = internalKeyComparator;
-            }
+		private static class FileMetaDataBySmallestKey implements Comparator<FileMetaData> {
+			
+			private final InternalKeyComparator internalKeyComparator;
 
-            @Override
-            public int compare(FileMetaData f1, FileMetaData f2)
-            {
-                return ComparisonChain
-                        .start()
-                        .compare(f1.getSmallest(), f2.getSmallest(), internalKeyComparator)
-                        .compare(f1.getNumber(), f2.getNumber())
-                        .result();
-            }
-        }
+			private FileMetaDataBySmallestKey(InternalKeyComparator internalKeyComparator) {
+				this.internalKeyComparator = internalKeyComparator;
+			}
 
-        private static class LevelState
-        {
-            private final SortedSet<FileMetaData> addedFiles;
-            private final Set<Long> deletedFiles = new HashSet<Long>();
+			@Override
+			public int compare(FileMetaData f1, FileMetaData f2) {
+				return ComparisonChain.start().compare(f1.getSmallest(), f2.getSmallest(), internalKeyComparator)
+						.compare(f1.getNumber(), f2.getNumber()).result();
+			}
+		}
 
-            public LevelState(InternalKeyComparator internalKeyComparator)
-            {
-                addedFiles = new TreeSet<FileMetaData>(new FileMetaDataBySmallestKey(internalKeyComparator));
-            }
+		private static class LevelState {
+			
+			private final SortedSet<FileMetaData> addedFiles;
+			private final Set<Long /**file number*/> deletedFiles = new HashSet<Long>();
 
-            @Override
-            public String toString()
-            {
-                final StringBuilder sb = new StringBuilder();
-                sb.append("LevelState");
-                sb.append("{addedFiles=").append(addedFiles);
-                sb.append(", deletedFiles=").append(deletedFiles);
-                sb.append('}');
-                return sb.toString();
-            }
-        }
+			public LevelState(InternalKeyComparator internalKeyComparator) {
+				addedFiles = new TreeSet<FileMetaData>(new FileMetaDataBySmallestKey(internalKeyComparator));
+			}
+
+			@Override
+			public String toString() {
+				final StringBuilder sb = new StringBuilder();
+				sb.append("LevelState");
+				sb.append("{addedFiles=").append(addedFiles);
+				sb.append(", deletedFiles=").append(deletedFiles);
+				sb.append('}');
+				return sb.toString();
+			}
+		}
     }
 }
