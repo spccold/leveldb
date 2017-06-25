@@ -69,6 +69,7 @@ public class VersionSet
     private final AtomicLong nextFileNumber = new AtomicLong(2);
     private long manifestFileNumber = 1;
     private Version current;
+    // increment per put or delete operation
     private long lastSequence;
     private long logNumber;
     private long prevLogNumber;

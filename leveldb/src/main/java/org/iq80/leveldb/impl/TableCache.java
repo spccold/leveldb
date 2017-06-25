@@ -37,102 +37,87 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.ExecutionException;
 
-public class TableCache
-{
-    private final LoadingCache<Long, TableAndFile> cache;
-    private final Finalizer<Table> finalizer = new Finalizer<>(1);
+public class TableCache {
 
-    public TableCache(final File databaseDir, int tableCacheSize, final UserComparator userComparator, final boolean verifyChecksums)
-    {
-        Preconditions.checkNotNull(databaseDir, "databaseName is null");
+	private final LoadingCache<Long, TableAndFile> cache;
+	private final Finalizer<Table> finalizer = new Finalizer<>(1);
 
-        cache = CacheBuilder.newBuilder()
-                .maximumSize(tableCacheSize)
-                .removalListener(new RemovalListener<Long, TableAndFile>()
-                {
-                    @Override
-                    public void onRemoval(RemovalNotification<Long, TableAndFile> notification)
-                    {
-                        Table table = notification.getValue().getTable();
-                        finalizer.addCleanup(table, table.closer());
-                    }
-                })
-                .build(new CacheLoader<Long, TableAndFile>()
-                {
-                    @Override
-                    public TableAndFile load(Long fileNumber)
-                            throws IOException
-                    {
-                        return new TableAndFile(databaseDir, fileNumber, userComparator, verifyChecksums);
-                    }
-                });
-    }
+	public TableCache(final File databaseDir, int tableCacheSize, final UserComparator userComparator,
+			final boolean verifyChecksums) {
+		Preconditions.checkNotNull(databaseDir, "databaseName is null");
 
-    public InternalTableIterator newIterator(FileMetaData file)
-    {
-        return newIterator(file.getNumber());
-    }
+		cache = CacheBuilder.newBuilder().maximumSize(tableCacheSize)
+				.removalListener(new RemovalListener<Long, TableAndFile>() {
+					
+					@Override
+					public void onRemoval(RemovalNotification<Long, TableAndFile> notification) {
+						Table table = notification.getValue().getTable();
+						finalizer.addCleanup(table, table.closer());
+					}
+				}).build(new CacheLoader<Long, TableAndFile>() {
+					
+					@Override
+					public TableAndFile load(Long fileNumber) throws IOException {
+						return new TableAndFile(databaseDir, fileNumber, userComparator, verifyChecksums);
+					}
+				});
+	}
 
-    public InternalTableIterator newIterator(long number)
-    {
-        return new InternalTableIterator(getTable(number).iterator());
-    }
+	public InternalTableIterator newIterator(FileMetaData file) {
+		return newIterator(file.getNumber());
+	}
 
-    public long getApproximateOffsetOf(FileMetaData file, Slice key)
-    {
-        return getTable(file.getNumber()).getApproximateOffsetOf(key);
-    }
+	public InternalTableIterator newIterator(long number) {
+		return new InternalTableIterator(getTable(number).iterator());
+	}
 
-    private Table getTable(long number)
-    {
-        Table table;
-        try {
-            table = cache.get(number).getTable();
-        }
-        catch (ExecutionException e) {
-            Throwable cause = e;
-            if (e.getCause() != null) {
-                cause = e.getCause();
-            }
-            throw new RuntimeException("Could not open table " + number, cause);
-        }
-        return table;
-    }
+	public long getApproximateOffsetOf(FileMetaData file, Slice key) {
+		return getTable(file.getNumber()).getApproximateOffsetOf(key);
+	}
 
-    public void close()
-    {
-        cache.invalidateAll();
-        finalizer.destroy();
-    }
+	private Table getTable(long number) {
+		Table table;
+		try {
+			table = cache.get(number).getTable();
+		} catch (ExecutionException e) {
+			Throwable cause = e;
+			if (e.getCause() != null) {
+				cause = e.getCause();
+			}
+			throw new RuntimeException("Could not open table " + number, cause);
+		}
+		return table;
+	}
 
-    public void evict(long number)
-    {
-        cache.invalidate(number);
-    }
+	public void close() {
+		cache.invalidateAll();
+		finalizer.destroy();
+	}
 
-    private static final class TableAndFile
-    {
-        private final Table table;
+	public void evict(long number) {
+		cache.invalidate(number);
+	}
 
-        private TableAndFile(File databaseDir, long fileNumber, UserComparator userComparator, boolean verifyChecksums)
-                throws IOException
-        {
-            String tableFileName = Filename.tableFileName(fileNumber);
-            File tableFile = new File(databaseDir, tableFileName);
-            try (FileInputStream fis = new FileInputStream(tableFile);
-                    FileChannel fileChannel = fis.getChannel()) {
-                if (Iq80DBFactory.USE_MMAP) {
-                    table = new MMapTable(tableFile.getAbsolutePath(), fileChannel, userComparator, verifyChecksums);
-                }
-                else {
-                    table = new FileChannelTable(tableFile.getAbsolutePath(), fileChannel, userComparator, verifyChecksums);
-                }
-            }
-        }
+	private static final class TableAndFile {
+		
+		private final Table table;
 
-        public Table getTable()
-        {
-            return table;
-        }
-    }
+		private TableAndFile(File databaseDir, long fileNumber, UserComparator userComparator, boolean verifyChecksums)
+				throws IOException {
+			String tableFileName = Filename.tableFileName(fileNumber);
+			File tableFile = new File(databaseDir, tableFileName);
+			try (FileInputStream fis = new FileInputStream(tableFile); FileChannel fileChannel = fis.getChannel()) {
+				if (Iq80DBFactory.USE_MMAP) {
+					table = new MMapTable(tableFile.getAbsolutePath(), fileChannel, userComparator, verifyChecksums);
+				} else {
+					table = new FileChannelTable(tableFile.getAbsolutePath(), fileChannel, userComparator,
+							verifyChecksums);
+				}
+			}
+		}
+
+		public Table getTable() {
+			return table;
+		}
+	}
 }

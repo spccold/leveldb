@@ -41,7 +41,8 @@ public class Level0
     private final TableCache tableCache;
     private final InternalKeyComparator internalKeyComparator;
     private final List<FileMetaData> files;
-
+    
+    // descending order
     public static final Comparator<FileMetaData> NEWEST_FIRST = new Comparator<FileMetaData>()
     {
         @Override
@@ -120,7 +121,7 @@ public class Level0
             }
 
             if (readStats.getSeekFile() == null) {
-                // We have had more than one seek for this read.  Charge the first file.
+                // We have had more than one seek for this read(per level).  Charge the first file.
                 readStats.setSeekFile(fileMetaData);
                 readStats.setSeekFileLevel(0);
             }

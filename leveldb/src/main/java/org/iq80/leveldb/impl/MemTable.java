@@ -29,114 +29,96 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.iq80.leveldb.util.SizeOf.SIZE_OF_LONG;
 
-public class MemTable
-        implements SeekingIterable<InternalKey, Slice>
-{
-    private final ConcurrentSkipListMap<InternalKey, Slice> table;
-    private final AtomicLong approximateMemoryUsage = new AtomicLong();
+public class MemTable implements SeekingIterable<InternalKey, Slice> {
+	private final ConcurrentSkipListMap<InternalKey, Slice> table;
+	private final AtomicLong approximateMemoryUsage = new AtomicLong();
 
-    public MemTable(InternalKeyComparator internalKeyComparator)
-    {
-        table = new ConcurrentSkipListMap<>(internalKeyComparator);
-    }
+	public MemTable(InternalKeyComparator internalKeyComparator) {
+		table = new ConcurrentSkipListMap<>(internalKeyComparator);
+	}
 
-    public boolean isEmpty()
-    {
-        return table.isEmpty();
-    }
+	public boolean isEmpty() {
+		return table.isEmpty();
+	}
 
-    public long approximateMemoryUsage()
-    {
-        return approximateMemoryUsage.get();
-    }
+	public long approximateMemoryUsage() {
+		return approximateMemoryUsage.get();
+	}
 
-    public void add(long sequenceNumber, ValueType valueType, Slice key, Slice value)
-    {
-        Preconditions.checkNotNull(valueType, "valueType is null");
-        Preconditions.checkNotNull(key, "key is null");
-        Preconditions.checkNotNull(valueType, "valueType is null");
-        
-        InternalKey internalKey = new InternalKey(key, sequenceNumber, valueType);
-        table.put(internalKey, value);
-        
-        // SIZE_OF_LONG = the bytes length of sequenceNumber ?
-        approximateMemoryUsage.addAndGet(key.length() + SIZE_OF_LONG + value.length());
-    }
+	public void add(long sequenceNumber, ValueType valueType, Slice key, Slice value) {
+		Preconditions.checkNotNull(valueType, "valueType is null");
+		Preconditions.checkNotNull(key, "key is null");
+		Preconditions.checkNotNull(valueType, "valueType is null");
 
-    public LookupResult get(LookupKey key)
-    {
-        Preconditions.checkNotNull(key, "key is null");
+		InternalKey internalKey = new InternalKey(key, sequenceNumber, valueType);
+		table.put(internalKey, value);
 
-        InternalKey internalKey = key.getInternalKey();
-        Entry<InternalKey, Slice> entry = table.ceilingEntry(internalKey);
-        if (entry == null) {
-            return null;
-        }
+		// SIZE_OF_LONG = the bytes length of sequenceNumber ?
+		approximateMemoryUsage.addAndGet(key.length() + SIZE_OF_LONG + value.length());
+	}
 
-        InternalKey entryKey = entry.getKey();
-        if (entryKey.getUserKey().equals(key.getUserKey())) {
-            if (entryKey.getValueType() == ValueType.DELETION) {
-                return LookupResult.deleted(key);
-            }
-            else {
-                return LookupResult.ok(key, entry.getValue());
-            }
-        }
-        return null;
-    }
+	public LookupResult get(LookupKey key) {
+		Preconditions.checkNotNull(key, "key is null");
 
-    @Override
-    public MemTableIterator iterator()
-    {
-        return new MemTableIterator();
-    }
+		InternalKey internalKey = key.getInternalKey();
+		Entry<InternalKey, Slice> entry = table.ceilingEntry(internalKey);
+		if (entry == null) {
+			return null;
+		}
 
-    public class MemTableIterator
-            implements InternalIterator
-    {
-        private PeekingIterator<Entry<InternalKey, Slice>> iterator;
+		InternalKey entryKey = entry.getKey();
+		if (entryKey.getUserKey().equals(key.getUserKey())) {
+			if (entryKey.getValueType() == ValueType.DELETION) {
+				return LookupResult.deleted(key);
+			} else {
+				return LookupResult.ok(key, entry.getValue());
+			}
+		}
+		return null;
+	}
 
-        public MemTableIterator()
-        {
-            iterator = Iterators.peekingIterator(table.entrySet().iterator());
-        }
+	@Override
+	public MemTableIterator iterator() {
+		return new MemTableIterator();
+	}
 
-        @Override
-        public boolean hasNext()
-        {
-            return iterator.hasNext();
-        }
+	public class MemTableIterator implements InternalIterator {
+		private PeekingIterator<Entry<InternalKey, Slice>> iterator;
 
-        @Override
-        public void seekToFirst()
-        {
-            iterator = Iterators.peekingIterator(table.entrySet().iterator());
-        }
+		public MemTableIterator() {
+			iterator = Iterators.peekingIterator(table.entrySet().iterator());
+		}
 
-        @Override
-        public void seek(InternalKey targetKey)
-        {
-            iterator = Iterators.peekingIterator(table.tailMap(targetKey).entrySet().iterator());
-        }
+		@Override
+		public boolean hasNext() {
+			return iterator.hasNext();
+		}
 
-        @Override
-        public InternalEntry peek()
-        {
-            Entry<InternalKey, Slice> entry = iterator.peek();
-            return new InternalEntry(entry.getKey(), entry.getValue());
-        }
+		@Override
+		public void seekToFirst() {
+			iterator = Iterators.peekingIterator(table.entrySet().iterator());
+		}
 
-        @Override
-        public InternalEntry next()
-        {
-            Entry<InternalKey, Slice> entry = iterator.next();
-            return new InternalEntry(entry.getKey(), entry.getValue());
-        }
+		@Override
+		public void seek(InternalKey targetKey) {
+			iterator = Iterators.peekingIterator(table.tailMap(targetKey).entrySet().iterator());
+		}
 
-        @Override
-        public void remove()
-        {
-            throw new UnsupportedOperationException();
-        }
-    }
+		@Override
+		public InternalEntry peek() {
+			Entry<InternalKey, Slice> entry = iterator.peek();
+			return new InternalEntry(entry.getKey(), entry.getValue());
+		}
+
+		@Override
+		public InternalEntry next() {
+			Entry<InternalKey, Slice> entry = iterator.next();
+			return new InternalEntry(entry.getKey(), entry.getValue());
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+	}
 }
