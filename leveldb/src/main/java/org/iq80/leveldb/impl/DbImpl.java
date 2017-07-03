@@ -359,7 +359,6 @@ public class DbImpl implements DB {
 		} finally {
 			mutex.unlock();
 		}
-
 	}
 
 	private void maybeScheduleCompaction() {
@@ -476,6 +475,7 @@ public class DbImpl implements DB {
 
 	private long recoverLogFile(long fileNumber, VersionEdit edit) throws IOException {
 		Preconditions.checkState(mutex.isHeldByCurrentThread());
+		
 		File file = new File(databaseDir, Filename.logFileName(fileNumber));
 		try (FileInputStream fis = new FileInputStream(file); FileChannel channel = fis.getChannel()) {
 			LogMonitor logMonitor = LogMonitors.logMonitor();

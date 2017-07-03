@@ -18,6 +18,7 @@
 package org.iq80.leveldb;
 
 public class Options {
+	
 	private boolean createIfMissing = true;
 	private boolean errorIfExists;
 	// 4MB, MemTable

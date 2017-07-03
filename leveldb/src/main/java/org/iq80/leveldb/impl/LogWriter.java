@@ -23,23 +23,21 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * The log file contents are a sequence of 32KB blocks. The only exception is that the tail of the file may contain a partial block.
+ * The log file contents are a sequence of 32KB blocks. The only exception is
+ * that the tail of the file may contain a partial block.
  */
-public interface LogWriter
-{
-    boolean isClosed();
+public interface LogWriter {
+	
+	boolean isClosed();
 
-    void close()
-            throws IOException;
+	void close() throws IOException;
 
-    void delete()
-            throws IOException;
+	void delete() throws IOException;
 
-    File getFile();
+	File getFile();
 
-    long getFileNumber();
+	long getFileNumber();
 
-    // Writes a stream of chunks such that no chunk is split across a block boundary
-    void addRecord(Slice record, boolean force)
-            throws IOException;
+	// Writes a stream of chunks such that no chunk is split across a block boundary
+	void addRecord(Slice record, boolean force) throws IOException;
 }

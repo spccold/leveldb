@@ -25,118 +25,108 @@ import org.iq80.leveldb.util.Slices;
 import static com.google.common.base.Charsets.UTF_8;
 import static org.iq80.leveldb.util.SizeOf.SIZE_OF_LONG;
 
-public class InternalKey
-{
-    private final Slice userKey;
-    private final long sequenceNumber;
-    private final ValueType valueType;
+public class InternalKey {
+	
+	private final Slice userKey;
+	private final long sequenceNumber;
+	private final ValueType valueType;
 
-    public InternalKey(Slice userKey, long sequenceNumber, ValueType valueType)
-    {
-        Preconditions.checkNotNull(userKey, "userKey is null");
-        Preconditions.checkArgument(sequenceNumber >= 0, "sequenceNumber is negative");
-        Preconditions.checkNotNull(valueType, "valueType is null");
+	public InternalKey(Slice userKey, long sequenceNumber, ValueType valueType) {
+		Preconditions.checkNotNull(userKey, "userKey is null");
+		Preconditions.checkArgument(sequenceNumber >= 0, "sequenceNumber is negative");
+		Preconditions.checkNotNull(valueType, "valueType is null");
 
-        this.userKey = userKey;
-        this.sequenceNumber = sequenceNumber;
-        this.valueType = valueType;
-    }
+		this.userKey = userKey;
+		this.sequenceNumber = sequenceNumber;
+		this.valueType = valueType;
+	}
 
-    public InternalKey(Slice data)
-    {
-        Preconditions.checkNotNull(data, "data is null");
-        Preconditions.checkArgument(data.length() >= SIZE_OF_LONG, "data must be at least %s bytes", SIZE_OF_LONG);
-        this.userKey = getUserKey(data);
-        long packedSequenceAndType = data.getLong(data.length() - SIZE_OF_LONG);
-        this.sequenceNumber = SequenceNumber.unpackSequenceNumber(packedSequenceAndType);
-        this.valueType = SequenceNumber.unpackValueType(packedSequenceAndType);
-    }
+	public InternalKey(Slice data) {
+		Preconditions.checkNotNull(data, "data is null");
+		Preconditions.checkArgument(data.length() >= SIZE_OF_LONG, "data must be at least %s bytes", SIZE_OF_LONG);
+		this.userKey = getUserKey(data);
+		long packedSequenceAndType = data.getLong(data.length() - SIZE_OF_LONG);
+		this.sequenceNumber = SequenceNumber.unpackSequenceNumber(packedSequenceAndType);
+		this.valueType = SequenceNumber.unpackValueType(packedSequenceAndType);
+	}
 
-    public InternalKey(byte[] data)
-    {
-        this(Slices.wrappedBuffer(data));
-    }
+	public InternalKey(byte[] data) {
+		this(Slices.wrappedBuffer(data));
+	}
 
-    public Slice getUserKey()
-    {
-        return userKey;
-    }
+	public Slice getUserKey() {
+		return userKey;
+	}
 
-    public long getSequenceNumber()
-    {
-        return sequenceNumber;
-    }
+	public long getSequenceNumber() {
+		return sequenceNumber;
+	}
 
-    public ValueType getValueType()
-    {
-        return valueType;
-    }
+	public ValueType getValueType() {
+		return valueType;
+	}
 
-    public Slice encode()
-    {
-        Slice slice = Slices.allocate(userKey.length() + SIZE_OF_LONG);
-        SliceOutput sliceOutput = slice.output();
-        sliceOutput.writeBytes(userKey);
-        sliceOutput.writeLong(SequenceNumber.packSequenceAndValueType(sequenceNumber, valueType));
-        return slice;
-    }
+	public Slice encode() {
+		Slice slice = Slices.allocate(userKey.length() + SIZE_OF_LONG);
+		SliceOutput sliceOutput = slice.output();
+		sliceOutput.writeBytes(userKey);
+		sliceOutput.writeLong(SequenceNumber.packSequenceAndValueType(sequenceNumber, valueType));
+		return slice;
+	}
 
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
 
-        InternalKey that = (InternalKey) o;
+		InternalKey that = (InternalKey) o;
 
-        if (sequenceNumber != that.sequenceNumber) {
-            return false;
-        }
-        if (userKey != null ? !userKey.equals(that.userKey) : that.userKey != null) {
-            return false;
-        }
-        if (valueType != that.valueType) {
-            return false;
-        }
+		if (sequenceNumber != that.sequenceNumber) {
+			return false;
+		}
+		if (userKey != null ? !userKey.equals(that.userKey) : that.userKey != null) {
+			return false;
+		}
+		if (valueType != that.valueType) {
+			return false;
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    private int hash;
+	private int hash;
 
-    @Override
-    public int hashCode()
-    {
-        if (hash == 0) {
-            int result = userKey != null ? userKey.hashCode() : 0;
-            result = 31 * result + (int) (sequenceNumber ^ (sequenceNumber >>> 32));
-            result = 31 * result + (valueType != null ? valueType.hashCode() : 0);
-            if (result == 0) {
-                result = 1;
-            }
-            hash = result;
-        }
-        return hash;
-    }
+	@Override
+	public int hashCode() {
+		if (hash == 0) {
+			int result = userKey != null ? userKey.hashCode() : 0;
+			result = 31 * result + (int) (sequenceNumber ^ (sequenceNumber >>> 32));
+			result = 31 * result + (valueType != null ? valueType.hashCode() : 0);
+			if (result == 0) {
+				result = 1;
+			}
+			hash = result;
+		}
+		return hash;
+	}
 
-    @Override
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("InternalKey");
-        sb.append("{key=").append(getUserKey().toString(UTF_8));      // todo don't print the real value
-        sb.append(", sequenceNumber=").append(getSequenceNumber());
-        sb.append(", valueType=").append(getValueType());
-        sb.append('}');
-        return sb.toString();
-    }
+	@Override
+	public String toString() {
+		// todo don't print the real value
+		StringBuilder sb = new StringBuilder();
+		sb.append("InternalKey");
+		sb.append("{key=").append(getUserKey().toString(UTF_8)); 
+		sb.append(", sequenceNumber=").append(getSequenceNumber());
+		sb.append(", valueType=").append(getValueType());
+		sb.append('}');
+		return sb.toString();
+	}
 
-    private static Slice getUserKey(Slice data)
-    {
-        return data.slice(0, data.length() - SIZE_OF_LONG);
-    }
+	private static Slice getUserKey(Slice data) {
+		return data.slice(0, data.length() - SIZE_OF_LONG);
+	}
 }

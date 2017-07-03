@@ -18,7 +18,7 @@
 package org.iq80.leveldb.impl;
 
 public class ReadStats {
-		
+
 	// level number
 	private int seekFileLevel = -1;
 	private FileMetaData seekFile;

@@ -29,59 +29,51 @@ import java.nio.channels.FileLock;
 
 import static java.lang.String.format;
 
-public class DbLock
-{
-    private final File lockFile;
-    private final FileChannel channel;
-    private final FileLock lock;
+public class DbLock {
 
-    public DbLock(File lockFile)
-            throws IOException
-    {
-        Preconditions.checkNotNull(lockFile, "lockFile is null");
-        this.lockFile = lockFile;
+	private final File lockFile;
+	private final FileChannel channel;
+	private final FileLock lock;
 
-        // open and lock the file
-        channel = new RandomAccessFile(lockFile, "rw").getChannel();
-        try {
-            lock = channel.tryLock();
-        }
-        catch (IOException e) {
-            Closeables.closeQuietly(channel);
-            throw e;
-        }
+	public DbLock(File lockFile) throws IOException {
+		Preconditions.checkNotNull(lockFile, "lockFile is null");
+		this.lockFile = lockFile;
 
-        if (lock == null) {
-            throw new IOException(format("Unable to acquire lock on '%s'", lockFile.getAbsolutePath()));
-        }
-    }
+		// open and lock the file
+		channel = new RandomAccessFile(lockFile, "rw").getChannel();
+		try {
+			lock = channel.tryLock();
+		} catch (IOException e) {
+			Closeables.closeQuietly(channel);
+			throw e;
+		}
 
-    public boolean isValid()
-    {
-        return lock.isValid();
-    }
+		if (lock == null) {
+			throw new IOException(format("Unable to acquire lock on '%s'", lockFile.getAbsolutePath()));
+		}
+	}
 
-    public void release()
-    {
-        try {
-            lock.release();
-        }
-        catch (IOException e) {
-            Throwables.propagate(e);
-        }
-        finally {
-            Closeables.closeQuietly(channel);
-        }
-    }
+	public boolean isValid() {
+		return lock.isValid();
+	}
 
-    @Override
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("DbLock");
-        sb.append("{lockFile=").append(lockFile);
-        sb.append(", lock=").append(lock);
-        sb.append('}');
-        return sb.toString();
-    }
+	public void release() {
+		try {
+			lock.release();
+		} catch (IOException e) {
+			Throwables.propagate(e);
+		} finally {
+			Closeables.closeQuietly(channel);
+		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("DbLock");
+		sb.append("{lockFile=").append(lockFile);
+		sb.append(", lock=").append(lock);
+		sb.append('}');
+		return sb.toString();
+	}
 }

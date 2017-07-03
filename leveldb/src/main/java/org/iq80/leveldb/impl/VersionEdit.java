@@ -30,16 +30,18 @@ import org.iq80.leveldb.util.VariableLengthQuantity;
 import java.util.Map;
 
 public class VersionEdit {
-	
+
 	private String comparatorName;
-	private Long logNumber;
+
 	private Long nextFileNumber;
+	
+	private Long logNumber;
 	private Long previousLogNumber;
+	
 	private Long lastSequenceNumber;
 	private final Map<Integer, InternalKey> compactPointers = Maps.newTreeMap();
-	// new added files after previous compaction
+
 	private final Multimap<Integer, FileMetaData> newFiles = ArrayListMultimap.create();
-	// deleted files after previous compation
 	private final Multimap<Integer, Long> deletedFiles = ArrayListMultimap.create();
 
 	public VersionEdit() {
@@ -114,8 +116,7 @@ public class VersionEdit {
 	// REQUIRES: This version has not been saved (see VersionSet::SaveTo)
 	// REQUIRES: "smallest" and "largest" are smallest and largest keys in file
 	public void addFile(int level, long fileNumber, long fileSize, InternalKey smallest, InternalKey largest) {
-		FileMetaData fileMetaData = new FileMetaData(fileNumber, fileSize, smallest, largest);
-		addFile(level, fileMetaData);
+		addFile(level, new FileMetaData(fileNumber, fileSize, smallest, largest));
 	}
 
 	public void addFile(int level, FileMetaData fileMetaData) {

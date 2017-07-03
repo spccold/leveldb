@@ -24,69 +24,62 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 
-public class InternalKeyComparator
-        implements Comparator<InternalKey>
-{
-    private final UserComparator userComparator;
+public class InternalKeyComparator implements Comparator<InternalKey> {
 
-    public InternalKeyComparator(UserComparator userComparator)
-    {
-        this.userComparator = userComparator;
-    }
+	private final UserComparator userComparator;
 
-    public UserComparator getUserComparator()
-    {
-        return userComparator;
-    }
+	public InternalKeyComparator(UserComparator userComparator) {
+		this.userComparator = userComparator;
+	}
 
-    public String name()
-    {
-        return this.userComparator.name();
-    }
+	public UserComparator getUserComparator() {
+		return userComparator;
+	}
 
-    @Override
-    public int compare(InternalKey left, InternalKey right)
-    {
-        int result = userComparator.compare(left.getUserKey(), right.getUserKey());
-        if (result != 0) {
-            return result;
-        }
+	public String name() {
+		return this.userComparator.name();
+	}
 
-        return Longs.compare(right.getSequenceNumber(), left.getSequenceNumber()); // reverse sorted version numbers
-    }
+	@Override
+	public int compare(InternalKey left, InternalKey right) {
+		int result = userComparator.compare(left.getUserKey(), right.getUserKey());
+		if (result != 0) {
+			return result;
+		}
+		// reverse sorted version numbers
+		return Longs.compare(right.getSequenceNumber(), left.getSequenceNumber());
+	}
 
-    /**
-     * Returns {@code true} if each element in {@code iterable} after the first is
-     * greater than or equal to the element that preceded it, according to this
-     * ordering. Note that this is always true when the iterable has fewer than
-     * two elements.
-     */
-    public boolean isOrdered(InternalKey... keys)
-    {
-        return isOrdered(Arrays.asList(keys));
-    }
+	/**
+	 * Returns {@code true} if each element in {@code iterable} after the first
+	 * is greater than or equal to the element that preceded it, according to
+	 * this ordering. Note that this is always true when the iterable has fewer
+	 * than two elements.
+	 */
+	public boolean isOrdered(InternalKey... keys) {
+		return isOrdered(Arrays.asList(keys));
+	}
 
-    /**
-     * Returns {@code true} if each element in {@code iterable} after the first is
-     * greater than or equal to the element that preceded it, according to this
-     * ordering. Note that this is always true when the iterable has fewer than
-     * two elements.
-     */
-    public boolean isOrdered(Iterable<InternalKey> keys)
-    {
-        Iterator<InternalKey> iterator = keys.iterator();
-        if (!iterator.hasNext()) {
-            return true;
-        }
+	/**
+	 * Returns {@code true} if each element in {@code iterable} after the first
+	 * is greater than or equal to the element that preceded it, according to
+	 * this ordering. Note that this is always true when the iterable has fewer
+	 * than two elements.
+	 */
+	public boolean isOrdered(Iterable<InternalKey> keys) {
+		Iterator<InternalKey> iterator = keys.iterator();
+		if (!iterator.hasNext()) {
+			return true;
+		}
 
-        InternalKey previous = iterator.next();
-        while (iterator.hasNext()) {
-            InternalKey next = iterator.next();
-            if (compare(previous, next) > 0) {
-                return false;
-            }
-            previous = next;
-        }
-        return true;
-    }
+		InternalKey previous = iterator.next();
+		while (iterator.hasNext()) {
+			InternalKey next = iterator.next();
+			if (compare(previous, next) > 0) {
+				return false;
+			}
+			previous = next;
+		}
+		return true;
+	}
 }

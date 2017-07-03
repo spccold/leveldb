@@ -27,84 +27,78 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import static com.google.common.collect.Lists.newArrayList;
+/**
+ * atomically apply a set of updates, Apart from its atomicity benefits, 
+ * WriteBatch may also be used to speed up bulk updates by placing lots of 
+ * individual mutations into the same batch.
+ */
+public class WriteBatchImpl implements WriteBatch {
+	
+	private final List<Entry<Slice, Slice>> batch = newArrayList();
+	private int approximateSize;
 
-public class WriteBatchImpl
-        implements WriteBatch
-{
-    private final List<Entry<Slice, Slice>> batch = newArrayList();
-    private int approximateSize;
+	public int getApproximateSize() {
+		return approximateSize;
+	}
 
-    public int getApproximateSize()
-    {
-        return approximateSize;
-    }
+	public int size() {
+		return batch.size();
+	}
 
-    public int size()
-    {
-        return batch.size();
-    }
+	@Override
+	public WriteBatchImpl put(byte[] key, byte[] value) {
+		Preconditions.checkNotNull(key, "key is null");
+		Preconditions.checkNotNull(value, "value is null");
+		batch.add(Maps.immutableEntry(Slices.wrappedBuffer(key), Slices.wrappedBuffer(value)));
+		// 12 = persistentId(int) + key.VariableLengthInt(int) +
+		// value.VariableLengthInt(int)
+		approximateSize += 12 + key.length + value.length;
+		return this;
+	}
 
-    @Override
-    public WriteBatchImpl put(byte[] key, byte[] value)
-    {
-        Preconditions.checkNotNull(key, "key is null");
-        Preconditions.checkNotNull(value, "value is null");
-        batch.add(Maps.immutableEntry(Slices.wrappedBuffer(key), Slices.wrappedBuffer(value)));
-        // 12 = persistentId(int) + key.VariableLengthInt(int) + value.VariableLengthInt(int)
-        approximateSize += 12 + key.length + value.length;
-        return this;
-    }
+	public WriteBatchImpl put(Slice key, Slice value) {
+		Preconditions.checkNotNull(key, "key is null");
+		Preconditions.checkNotNull(value, "value is null");
+		batch.add(Maps.immutableEntry(key, value));
+		approximateSize += 12 + key.length() + value.length();
+		return this;
+	}
 
-    public WriteBatchImpl put(Slice key, Slice value)
-    {
-        Preconditions.checkNotNull(key, "key is null");
-        Preconditions.checkNotNull(value, "value is null");
-        batch.add(Maps.immutableEntry(key, value));
-        approximateSize += 12 + key.length() + value.length();
-        return this;
-    }
+	@Override
+	public WriteBatchImpl delete(byte[] key) {
+		Preconditions.checkNotNull(key, "key is null");
+		batch.add(Maps.immutableEntry(Slices.wrappedBuffer(key), (Slice) null));
+		approximateSize += 6 + key.length;
+		return this;
+	}
 
-    @Override
-    public WriteBatchImpl delete(byte[] key)
-    {
-        Preconditions.checkNotNull(key, "key is null");
-        batch.add(Maps.immutableEntry(Slices.wrappedBuffer(key), (Slice) null));
-        approximateSize += 6 + key.length;
-        return this;
-    }
+	public WriteBatchImpl delete(Slice key) {
+		Preconditions.checkNotNull(key, "key is null");
+		batch.add(Maps.immutableEntry(key, (Slice) null));
+		// 6 = persistentId(int)(byte in fact) + key.VariableLengthInt(int)
+		approximateSize += 6 + key.length();
+		return this;
+	}
 
-    public WriteBatchImpl delete(Slice key)
-    {
-        Preconditions.checkNotNull(key, "key is null");
-        batch.add(Maps.immutableEntry(key, (Slice) null));
-        // 6 = persistentId(int)(byte in fact) + key.VariableLengthInt(int)
-        approximateSize += 6 + key.length();
-        return this;
-    }
+	@Override
+	public void close() {
+	}
 
-    @Override
-    public void close()
-    {
-    }
+	public void forEach(Handler handler) {
+		for (Entry<Slice, Slice> entry : batch) {
+			Slice key = entry.getKey();
+			Slice value = entry.getValue();
+			if (value != null) {
+				handler.put(key, value);
+			} else {
+				handler.delete(key);
+			}
+		}
+	}
 
-    public void forEach(Handler handler)
-    {
-        for (Entry<Slice, Slice> entry : batch) {
-            Slice key = entry.getKey();
-            Slice value = entry.getValue();
-            if (value != null) {
-                handler.put(key, value);
-            }
-            else {
-                handler.delete(key);
-            }
-        }
-    }
+	public interface Handler {
+		void put(Slice key, Slice value);
 
-    public interface Handler
-    {
-        void put(Slice key, Slice value);
-
-        void delete(Slice key);
-    }
+		void delete(Slice key);
+	}
 }

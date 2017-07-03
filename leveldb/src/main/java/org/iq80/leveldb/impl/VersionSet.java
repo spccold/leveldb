@@ -66,12 +66,14 @@ public class VersionSet
     // stop building a single file in a level.level+1 compaction.
     public static final long MAX_GRAND_PARENT_OVERLAP_BYTES = 10 * TARGET_FILE_SIZE;
 
+    // start from manifestFileNumber=1
     private final AtomicLong nextFileNumber = new AtomicLong(2);
     private long manifestFileNumber = 1;
     private Version current;
     // increment per put or delete operation
     private long lastSequence;
     private long logNumber;
+    // useless, can ignore
     private long prevLogNumber;
 
     private final Map<Version, Object> activeVersions = new MapMaker().weakKeys().makeMap();
@@ -273,9 +275,11 @@ public class VersionSet
         builder.apply(edit);
 
         Version version = new Version(this);
+        // copy current version to this new version
         builder.saveTo(version);
         
         // finalize => finish new version setting
+        // compute compaction level and compaction score
         finalizeVersion(version);
 
         boolean createdNewManifest = false;
@@ -317,9 +321,6 @@ public class VersionSet
         prevLogNumber = edit.getPreviousLogNumber();
     }
 
-	/**
-	 * snapshot for what? for leveldb(level0 ~ level6)?
-	 */
 	private void writeSnapshot(LogWriter log) throws IOException {
 		// Save metadata
 		VersionEdit edit = new VersionEdit();
@@ -473,7 +474,9 @@ public class VersionSet
     {
         // Note: the result for level zero is not really used since we set
         // the level-0 compaction threshold based on number of files.
+    	// 10MB
         double result = 10 * 1048576.0;  // Result for both level-0 and level-1
+        // 100MB(level2), 1000MB(level3), 10000MB(level4)......
         while (level > 1) {
             result *= 10;
             level--;
@@ -709,16 +712,12 @@ public class VersionSet
         {
             // Update compaction pointers
             for (Entry<Integer, InternalKey> entry : edit.getCompactPointers().entrySet()) {
-                Integer level = entry.getKey();
-                InternalKey internalKey = entry.getValue();
-                versionSet.compactPointers.put(level, internalKey);
+                versionSet.compactPointers.put(entry.getKey(), entry.getValue());
             }
 
             // Delete files
             for (Entry<Integer, Long> entry : edit.getDeletedFiles().entries()) {
-                Integer level = entry.getKey();
-                Long fileNumber = entry.getValue();
-                levels.get(level).deletedFiles.add(fileNumber);
+                levels.get(entry.getKey()).deletedFiles.add(entry.getValue());
                 // todo missing update to addedFiles?
             }
 

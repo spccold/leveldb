@@ -48,14 +48,14 @@ public class TableCache {
 
 		cache = CacheBuilder.newBuilder().maximumSize(tableCacheSize)
 				.removalListener(new RemovalListener<Long, TableAndFile>() {
-					
+
 					@Override
 					public void onRemoval(RemovalNotification<Long, TableAndFile> notification) {
 						Table table = notification.getValue().getTable();
 						finalizer.addCleanup(table, table.closer());
 					}
 				}).build(new CacheLoader<Long, TableAndFile>() {
-					
+
 					@Override
 					public TableAndFile load(Long fileNumber) throws IOException {
 						return new TableAndFile(databaseDir, fileNumber, userComparator, verifyChecksums);
@@ -99,14 +99,16 @@ public class TableCache {
 	}
 
 	private static final class TableAndFile {
-		
+
 		private final Table table;
 
 		private TableAndFile(File databaseDir, long fileNumber, UserComparator userComparator, boolean verifyChecksums)
 				throws IOException {
-			String tableFileName = Filename.tableFileName(fileNumber);
-			File tableFile = new File(databaseDir, tableFileName);
+
+			File tableFile = new File(databaseDir, Filename.tableFileName(fileNumber));
+			
 			try (FileInputStream fis = new FileInputStream(tableFile); FileChannel fileChannel = fis.getChannel()) {
+				
 				if (Iq80DBFactory.USE_MMAP) {
 					table = new MMapTable(tableFile.getAbsolutePath(), fileChannel, userComparator, verifyChecksums);
 				} else {
@@ -114,6 +116,7 @@ public class TableCache {
 							verifyChecksums);
 				}
 			}
+
 		}
 
 		public Table getTable() {

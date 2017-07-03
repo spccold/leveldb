@@ -33,7 +33,7 @@ import java.util.Comparator;
 import java.util.concurrent.Callable;
 
 public abstract class Table implements SeekingIterable<Slice, Slice> {
-	
+
 	protected final String name;
 	protected final FileChannel fileChannel;
 	protected final Comparator<Slice> comparator;

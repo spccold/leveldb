@@ -36,12 +36,12 @@ import static org.iq80.leveldb.impl.ValueType.VALUE;
 
 // todo this class should be immutable
 public class Level0 implements SeekingIterable<InternalKey, Slice> {
-	
+
 	private final TableCache tableCache;
 	private final InternalKeyComparator internalKeyComparator;
 	private final List<FileMetaData> files;
 
-	// descending order
+	// descending order(newset sst with bigger file number)
 	public static final Comparator<FileMetaData> NEWEST_FIRST = new Comparator<FileMetaData>() {
 		@Override
 		public int compare(FileMetaData fileMetaData, FileMetaData fileMetaData1) {

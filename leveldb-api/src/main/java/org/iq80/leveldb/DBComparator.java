@@ -22,20 +22,19 @@ import java.util.Comparator;
 /**
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-public interface DBComparator
-        extends Comparator<byte[]>
-{
-    String name();
+public interface DBComparator extends Comparator<byte[]> {
+	
+	String name();
 
-    /**
-     * If <code>start < limit</code>, returns a short key in [start,limit).
-     * Simple comparator implementations should return start unchanged,
-     */
-    byte[] findShortestSeparator(byte[] start, byte[] limit);
+	/**
+	 * If <code>start < limit</code>, returns a short key in [start,limit).
+	 * Simple comparator implementations should return start unchanged,
+	 */
+	byte[] findShortestSeparator(byte[] start, byte[] limit);
 
-    /**
-     * returns a 'short key' where the 'short key' >= key.
-     * Simple comparator implementations should return key unchanged,
-     */
-    byte[] findShortSuccessor(byte[] key);
+	/**
+	 * returns a 'short key' where the 'short key' >= key. Simple comparator
+	 * implementations should return key unchanged,
+	 */
+	byte[] findShortSuccessor(byte[] key);
 }
