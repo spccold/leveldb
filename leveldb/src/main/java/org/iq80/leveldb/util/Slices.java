@@ -89,13 +89,12 @@ public final class Slices
         return new Slice(capacity);
     }
 
-    public static Slice wrappedBuffer(byte[] array)
-    {
-        if (array.length == 0) {
-            return EMPTY_SLICE;
-        }
-        return new Slice(array);
-    }
+	public static Slice wrappedBuffer(byte[] array) {
+		if (array.length == 0) {
+			return EMPTY_SLICE;
+		}
+		return new Slice(array);
+	}
 
     public static Slice copiedBuffer(ByteBuffer source, int sourceOffset, int length)
     {
