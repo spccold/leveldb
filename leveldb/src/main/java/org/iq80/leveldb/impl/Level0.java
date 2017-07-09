@@ -126,10 +126,12 @@ public class Level0 implements SeekingIterable<InternalKey, Slice> {
 	}
 
 	public boolean someFileOverlapsRange(Slice smallestUserKey, Slice largestUserKey) {
+		// UserKey相同的场景下, sequence越大, nternalKey越小(越新)
 		InternalKey smallestInternalKey = new InternalKey(smallestUserKey, MAX_SEQUENCE_NUMBER, VALUE);
 		int index = findFile(smallestInternalKey);
 
 		UserComparator userComparator = internalKeyComparator.getUserComparator();
+		// 注意这里比较的是UserKey, 而不是InternalKey
 		return ((index < files.size())
 				&& userComparator.compare(largestUserKey, files.get(index).getSmallest().getUserKey()) >= 0);
 	}

@@ -8,7 +8,7 @@ import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 
-public class App {
+public class DBApp {
 	public static void main(String[] args) throws IOException {
 		Iq80DBFactory factory = Iq80DBFactory.factory;
 		Options options = new Options();

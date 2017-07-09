@@ -768,8 +768,7 @@ public class DbImpl implements DB {
 				// There is room in current memtable
 				break;
 			} else if (immutableMemTable != null) {
-				// We have filled up the current memtable, but the previous
-				// one is still being compacted, so we wait.
+				// We have filled up the current memtable, but the previous one is still being compacted, so we wait.
 				backgroundCondition.awaitUninterruptibly();
 			} else if (versions.numberOfFilesInLevel(0) >= L0_STOP_WRITES_TRIGGER) {
 				// There are too many level-0 files.
