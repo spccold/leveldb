@@ -962,43 +962,33 @@ public class DbImpl implements DB {
 
 				// Handle key/value, add to state, etc.
 				boolean drop = false;
-				// todo if key doesn't parse (it is corrupted),
-				if (false /* !ParseInternalKey(key, &ikey) */) {
-					// do not hide error keys
-					currentUserKey = null;
-					hasCurrentUserKey = false;
+
+				if (!hasCurrentUserKey || internalKeyComparator.getUserComparator().compare(key.getUserKey(), currentUserKey) != 0) {
+					// First occurrence of this user key
+					currentUserKey = key.getUserKey();
+					hasCurrentUserKey = true;
 					lastSequenceForKey = MAX_SEQUENCE_NUMBER;
-				} else {
-					if (!hasCurrentUserKey || internalKeyComparator.getUserComparator().compare(key.getUserKey(),
-							currentUserKey) != 0) {
-						// First occurrence of this user key
-						currentUserKey = key.getUserKey();
-						hasCurrentUserKey = true;
-						lastSequenceForKey = MAX_SEQUENCE_NUMBER;
-					}
-
-					if (lastSequenceForKey <= compactionState.smallestSnapshot) {
-						// Hidden by an newer entry for same user key
-						drop = true; // (A)
-					} else if (key.getValueType() == DELETION
-							&& key.getSequenceNumber() <= compactionState.smallestSnapshot
-							&& compactionState.compaction.isBaseLevelForKey(key.getUserKey())) {
-						// For this user key:
-						// (1) there is no data in higher levels
-						// (2) data in lower levels will have larger sequence
-						// numbers
-						// (3) data in layers that are being compacted here and
-						// have
-						// smaller sequence numbers will be dropped in the next
-						// few iterations of this loop (by rule (A) above).
-						// Therefore this deletion marker is obsolete and can be
-						// dropped.
-						drop = true;
-					}
-
-					lastSequenceForKey = key.getSequenceNumber();
 				}
 
+				if (lastSequenceForKey <= compactionState.smallestSnapshot) {
+					// Hidden by an newer entry for same user key
+					drop = true; // (A)
+				} else if (key.getValueType() == DELETION
+						&& key.getSequenceNumber() <= compactionState.smallestSnapshot
+						&& compactionState.compaction.isBaseLevelForKey(key.getUserKey())) {
+					// For this user key:
+					// (1) there is no data in higher levels
+					// (2) data in lower levels will have larger sequence numbers
+					// (3) data in layers that are being compacted here and have
+					// smaller sequence numbers will be dropped in the next
+					// few iterations of this loop (by rule (A) above).
+					// Therefore this deletion marker is obsolete and can be
+					// dropped.
+					drop = true;
+				}
+
+				lastSequenceForKey = key.getSequenceNumber();
+			
 				if (!drop) {
 					// Open output file if necessary
 					if (compactionState.builder == null) {

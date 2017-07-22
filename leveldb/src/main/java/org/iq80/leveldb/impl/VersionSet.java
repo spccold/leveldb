@@ -17,20 +17,10 @@
  */
 package org.iq80.leveldb.impl;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import org.iq80.leveldb.table.UserComparator;
-import org.iq80.leveldb.util.InternalIterator;
-import org.iq80.leveldb.util.Level0Iterator;
-import org.iq80.leveldb.util.MergingIterator;
-import org.iq80.leveldb.util.Slice;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.iq80.leveldb.impl.DbConstants.NUM_LEVELS;
+import static org.iq80.leveldb.impl.LogMonitors.throwExceptionMonitor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,10 +39,21 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.iq80.leveldb.impl.DbConstants.NUM_LEVELS;
-import static org.iq80.leveldb.impl.LogMonitors.throwExceptionMonitor;
+import org.iq80.leveldb.table.UserComparator;
+import org.iq80.leveldb.util.InternalIterator;
+import org.iq80.leveldb.util.Level0Iterator;
+import org.iq80.leveldb.util.MergingIterator;
+import org.iq80.leveldb.util.Slice;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.MapMaker;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 
 public class VersionSet
         implements SeekingIterable<InternalKey, Slice>
@@ -205,8 +206,8 @@ public class VersionSet
 
     public MergingIterator makeInputIterator(Compaction c)
     {
-        // Level-0 files have to be merged together.  For other levels,
-        // we will make a concatenating iterator per level.
+        // Level-0 files have to be merged together. 
+    	// For other levels, we will make a concatenating iterator per level.
         // TODO(opt): use concatenating iterator for level-0 if there is no overlap
         List<InternalIterator> list = newArrayList();
         for (int which = 0; which < 2; which++) {
@@ -474,8 +475,8 @@ public class VersionSet
     {
         // Note: the result for level zero is not really used since we set
         // the level-0 compaction threshold based on number of files.
-    	// 10MB
-        double result = 10 * 1048576.0;  // Result for both level-0 and level-1
+    	// Result for both level-0 and level-1 (10MB)
+        double result = 10 * 1048576.0;  
         // 100MB(level2), 1000MB(level3), 10000MB(level4)......
         while (level > 1) {
             result *= 10;
@@ -506,8 +507,7 @@ public class VersionSet
 
     public Compaction pickCompaction()
     {
-        // We prefer compactions triggered by too much data in a level over
-        // the compactions triggered by seeks.
+        // We prefer compactions triggered by too much data in a level over the compactions triggered by seeks.
         boolean sizeCompaction = (current.getCompactionScore() >= 1);
         boolean seekCompaction = (current.getFileToCompact() != null);
 
@@ -550,7 +550,7 @@ public class VersionSet
 
             Preconditions.checkState(!levelInputs.isEmpty());
         }
-
+        // input_[1] and input_[2]
         Compaction compaction = setupOtherInputs(level, levelInputs);
         return compaction;
     }
@@ -561,6 +561,7 @@ public class VersionSet
         InternalKey smallest = range.getKey();
         InternalKey largest = range.getValue();
 
+        // 获取上一层和当前input_[0]存在的overlap
         List<FileMetaData> levelUpInputs = getOverlappingInputs(level + 1, smallest, largest);
 
         // Get entire range covered by compaction
@@ -572,13 +573,14 @@ public class VersionSet
         // changing the number of "level+1" files we pick up.
         if (!levelUpInputs.isEmpty()) {
             List<FileMetaData> expanded0 = getOverlappingInputs(level, allStart, allLimit);
-
+            // level层文件数增加了
             if (expanded0.size() > levelInputs.size()) {
                 range = getRange(expanded0);
                 InternalKey newStart = range.getKey();
                 InternalKey newLimit = range.getValue();
 
                 List<FileMetaData> expanded1 = getOverlappingInputs(level + 1, newStart, newLimit);
+                // level+1层文件数未增加
                 if (expanded1.size() == levelUpInputs.size()) {
 //              Log(options_->info_log,
 //                  "Expanding@%d %d+%d to %d+%d\n",
@@ -615,10 +617,10 @@ public class VersionSet
 
         Compaction compaction = new Compaction(current, level, levelInputs, levelUpInputs, grandparents);
 
-        // Update the place where we will do the next compaction for this level.
+        // Update the place(compact pointer) where we will do the next compaction for this level.
+        
         // We update this immediately instead of waiting for the VersionEdit
-        // to be applied so that if the compaction fails, we will try a different
-        // key range next time.
+        // to be applied so that if the compaction fails, we will try a different key range next time.
         compactPointers.put(level, largest);
         compaction.getEdit().setCompactPointer(level, largest);
 
@@ -630,6 +632,7 @@ public class VersionSet
         ImmutableList.Builder<FileMetaData> files = ImmutableList.builder();
         Slice userBegin = begin.getUserKey();
         Slice userEnd = end.getUserKey();
+        // default: BytewiseComparator
         UserComparator userComparator = internalKeyComparator.getUserComparator();
         for (FileMetaData fileMetaData : current.getFiles(level)) {
             if (userComparator.compare(fileMetaData.getLargest().getUserKey(), userBegin) < 0 ||
@@ -647,6 +650,7 @@ public class VersionSet
     {
         InternalKey smallest = null;
         InternalKey largest = null;
+        
         for (List<FileMetaData> inputList : inputLists) {
             for (FileMetaData fileMetaData : inputList) {
                 if (smallest == null) {
@@ -663,6 +667,7 @@ public class VersionSet
                 }
             }
         }
+        
         return Maps.immutableEntry(smallest, largest);
     }
 

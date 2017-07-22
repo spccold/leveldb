@@ -68,6 +68,7 @@ public class Compaction
         this.levelInputs = levelInputs;
         this.levelUpInputs = levelUpInputs;
         this.grandparents = grandparents;
+        
         this.maxOutputFileSize = VersionSet.maxFileSizeForLevel(level);
         this.inputs = new List[] {levelInputs, levelUpInputs};
     }
@@ -168,8 +169,7 @@ public class Compaction
         return true;
     }
 
-    // Returns true iff we should stop building the current output
-    // before processing "internal_key".
+    // Returns true if we should stop building the current output before processing "internal_key".
     public boolean shouldStopBefore(InternalKey internalKey)
     {
         if (grandparents == null) {
@@ -178,7 +178,8 @@ public class Compaction
 
         // Scan to find earliest grandparent file that contains key.
         InternalKeyComparator internalKeyComparator = inputVersion.getInternalKeyComparator();
-        while (grandparentIndex < grandparents.size() && internalKeyComparator.compare(internalKey, grandparents.get(grandparentIndex).getLargest()) > 0) {
+        while (grandparentIndex < grandparents.size() 
+        		&& internalKeyComparator.compare(internalKey, grandparents.get(grandparentIndex).getLargest()) > 0) {
             if (seenKey) {
                 overlappedBytes += grandparents.get(grandparentIndex).getFileSize();
             }

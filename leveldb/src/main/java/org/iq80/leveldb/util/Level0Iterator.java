@@ -47,6 +47,7 @@ public final class Level0Iterator
         for (FileMetaData file : files) {
             builder.add(tableCache.newIterator(file));
         }
+        // InternalTableIterator
         this.inputs = builder.build();
         this.comparator = comparator;
 
